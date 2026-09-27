@@ -1,0 +1,36 @@
+name: 每日文献监控
+
+on:
+  schedule:
+    # 每天北京时间 16:00 运行（UTC 8:00）
+    - cron: '0 8 * * *'
+  workflow_dispatch:  # 支持手动触发
+
+jobs:
+  fetch-papers:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 安装依赖
+        run: pip install -r requirements.txt
+
+      - name: 运行文献抓取
+        env:
+          SERVERCHAN_SENDKEY: ${{ secrets.SERVERCHAN_SENDKEY }}
+        run: python fetch_papers.py
+
+      - name: 提交报告
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          git diff --staged --quiet || git commit -m "📚 更新文献简报 $(date +%Y-%m-%d)"
+          git push
